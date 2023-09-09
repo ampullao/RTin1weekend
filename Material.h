@@ -2,6 +2,7 @@
 #define MATERIAL_H
 
 #include "RTWeekend.h"
+#include "texture.h"
 
 class hit_record;
 
@@ -15,7 +16,8 @@ class material {
 
 class lambertian : public material {
     public:
-        lambertian(const Color& a) : albedo(a) {}
+        lambertian(const Color& a) : albedo(make_shared<solid_color>(a)) {}
+        lambertian(shared_ptr<texture> a) : albedo(a) {}
 
         bool scatter(const Ray& r_in, const hit_record& rec, Color& attenuation, Ray& scattered)
         const override {
@@ -26,12 +28,12 @@ class lambertian : public material {
                 scatter_direction = rec.normal;
 
             scattered = Ray(rec.p, scatter_direction, r_in.time());
-            attenuation = albedo;
+            attenuation = albedo->value(rec.u, rec.v, rec.p);
             return true;
         }
 
     private:
-        Color albedo;
+        shared_ptr<texture> albedo;
 };
 
 class metal: public material {
