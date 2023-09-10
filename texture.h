@@ -2,6 +2,8 @@
 #define TEXTURE_H
 
 #include "RTWeekend.h"
+#include "rtw_stb_image.h"
+#include "perlin.h"
 
 class texture {
     public:
@@ -49,6 +51,46 @@ class checker_texture : public texture {
         double inv_scale;
         shared_ptr<texture> even;
         shared_ptr<texture> odd;
+};
+
+class image_texture : public texture {
+    public:
+        image_texture(const char* filename) : image(filename) {}
+
+        Color value(double u, double v, const Point3& p) const override {
+            // If we have no texture data, then return solid cyan as a debugging aid.
+            if (image.height() <= 0) return Color(0, 1, 1);
+
+            // Clamp input texture coordinates to [0,1] x [1,0]
+            u = interval(0, 1).clamp(u);
+            v = 1.0 - interval(0, 1).clamp(v); // Filp V to image coordinates
+
+            auto i = static_cast<int>(u * image.width());
+            auto j = static_cast<int>(v * image.height());
+            auto pixel = image.pixel_data(i, j);
+
+            auto color_scale = 1.0 / 255.0;
+            return Color(color_scale*pixel[0], color_scale*pixel[1], color_scale*pixel[2]);
+        }
+
+    private:
+        rtw_image image;
+};
+
+class noise_texture : public texture {
+    public:
+        noise_texture() {}
+
+        noise_texture(double sc) : scale(sc) {}
+
+        Color value(double u, double v, const Point3& p) const override {
+            auto s = scale * p;
+            return Color(1,1,1) * 0.5 * (1 + sin(s.z() + 10*noise.turb(s)));
+        }
+
+    private:
+        perlin noise;
+        double scale;
 };
 
 #endif
